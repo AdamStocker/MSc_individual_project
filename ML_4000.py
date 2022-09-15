@@ -1,3 +1,5 @@
+## Read the CSV files generated in data_4000.py and cluster the 2d parameter space. Then plot these found clusters. 
+
 from cProfile import label
 import csv
 from matplotlib import projections
@@ -210,67 +212,4 @@ df.to_csv(write_path)
 
 
 
-# # # # fig = plt.figure()
-# # # # ax = fig.add_subplot(111, projection = "3d")
-
-# # # # ax = plt.axes(projection="3d")
-# # # # z=all_data["correlation"]
-# # # # x=all_data["average"]
-# # # # y=all_data["vel_par_average"]
-# # # # ax.scatter3D(x,y,z)
-# # # # ax.set_xlabel("correlation")
-# # # # ax.set_ylabel("average")
-# # # # ax.set_zlabel("velocity")
-
-
-
-# # # # plt.title("KMeans")
-# # # # name = "KMeans.png"
-# # # # #plt.savefig(graph_path+name)
-# # # # plt.show()
-
-# # # # plt.scatter(data[kmeans_pred==0,0], data[kmeans_pred==0,1], c='b')
-# # # # plt.scatter(data[kmeans_pred==1,0], data[kmeans_pred==1,1], c='y')
-# # # # plt.scatter()
-# # # # plt.xlabel("Correlation")
-# # # # plt.ylabel("Average")
-# # # # plt.show()
-
-# # # # # plt.scatter(data[dbscan_pred==0,0], data[dbscan_pred==0,1], c='b')
-# # # # # plt.scatter(data[dbscan_pred==1,0], data[dbscan_pred==1,1], c='y')
-# # # # # plt.xlabel("Correlation")
-# # # # # plt.ylabel("Average")
-# # # # # plt.title("DBScan")
-# # # # # name = "DBScan.png"
-# # # # # plt.savefig(graph_path+name)
-# # # # # plt.show()
-
-# # # plt.scatter(data[Agglo_pred==0,0], data[Agglo_pred==0,1], c='b')
-# # # plt.scatter(data[Agglo_pred==1,0], data[Agglo_pred==1,1], c='y')
-# # # plt.xlabel("Correlation")
-# # # plt.ylabel("Average")
-# # # plt.title("Agglo_cluster")
-# # # name = "Agglo_cluster.png"
-# # # plt.savefig(graph_path+name)
-# # # plt.show()
-
-# # # plt.scatter(data[Gaussian_pred==0,0], data[Gaussian_pred==0,1], c='b')
-# # # plt.scatter(data[Gaussian_pred==1,0], data[Gaussian_pred==1,1], c='y')
-# # # plt.xlabel("Correlation")
-# # # plt.ylabel("Average")
-# # # plt.title("Gaussian")
-# # # name = "Gaussian.png" 
-# # # plt.show()
-# # # plt.savefig(graph_path+name)
-
-
-
-
-# # # # plt.scatter(all_data["correlation"],all_data["average"], c= kmeans.labels_.astype(float), s=50, alpha=0.5)
-# # # # plt.scatter(centroids[:, 0], centroids[:, 1], c='red', s=50)
-# # # # plt.show()
-
-
-# # # # all_data["k_means_prediciton"] = kmeans_pred
-# # # # #print(all_data["k_means_prediciton"])
 
