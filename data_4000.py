@@ -1,4 +1,7 @@
-## Testing scripts 
+## Script to download magnetic field, proton density, proton velocity and proton temperature of the solar wind 
+## taken from the solar orbiter spacecraft. The data is then preprocessed and saved as a CSV file. 
+
+
 import cdflib 
 from time import time
 from turtle import color
@@ -25,6 +28,8 @@ def convertTime(EpochTime):
     return name
 
 ## Dates Chosen for 1st iteration: Time("2020-07-12","2020-09-12")
+
+## Downloading data from solar orbiter's magnitometer and heavy ion instrument
 
 instrument_mag = Instrument("MAG")
 time_mag = Time("2021-08-20","2021-10-20")
@@ -102,22 +107,26 @@ for i in files_pas:
 
 print("all data collected")
 
-mag_data = mag_data[1:]
+mag_data = mag_data[1:] # remove the 0 value from when the panda's dataframe was made
 pas_data = pas_data[1:] 
 V_data = V_data[1:]
 T_data = T_data[1:]
 
-pas_data = pas_data.sort_index().dropna()
+pas_data = pas_data.sort_index().dropna() # Remove the NaN values from the data and sort in order of date time
 V_data = V_data.sort_index().dropna()
 mag_data = mag_data.sort_index().dropna()
 T_data = T_data.sort_index().dropna()
 
 print("Data index sorted")
 
-wanted_time = [900,1800,2700,3600]
+wanted_time = [900,1800,2700,3600] # Define the intervals the data is to be averaged and corrolated over
+
+## Use the wanted time to calculate how many data points fit into the wanted_time interval
 
 data_res = (pas_data.index[-1]-pas_data.index[0]) / len(pas_data.index)
-data_res = int(data_res.total_seconds())
+data_res = int(data_res.total_seconds())  
+
+## For loop to interate the four wanted times, giving 8 CSV files in total for further analysis
 
 for i in wanted_time:
     if i == 900:
@@ -133,15 +142,16 @@ for i in wanted_time:
         time_string = "3600"
         number = "4/4"
     else:
-        print("Absolutely Stacked It")
+        print("There has been an error")
     
-    print("Working on "+number)
+    print("Working on "+number)  ## So I can see how long its taking the algorithm to review data. 
     num_data = int((i/data_res))
 
-    ## NON-normalised mag data
+    ## Finding the NON-normalised mag data magnitude
 
     magnitude_mag_non_norm = np.sqrt(mag_data["B_R"]**2 + mag_data["B_T"]**2 + mag_data["B_N"]**2)
-    #magnitude_mag_non_norm = pd.Series(magnitude_mag_non_norm)
+    
+    ## Normalising the MAG data 
 
     Mag_R = (mag_data["B_R"] - mag_data["B_R"].rolling(window=int(num_data)).mean()) / mag_data["B_R"].rolling(window=int(num_data)).mean()
     Mag_T = (mag_data["B_T"] - mag_data["B_T"].rolling(window=int(num_data)).mean()) / mag_data["B_T"].rolling(window=int(num_data)).mean()
@@ -152,35 +162,33 @@ for i in wanted_time:
     Mag_N.name = "Mag_N"
     magnitude_mag_non_norm.name = "magnitude_mag_non_norm"
   
-    mag_field = pd.concat([Mag_R,Mag_T,Mag_N,magnitude_mag_non_norm],axis=1) 
-
-    #mag_data["magnitude_mag"] = np.sqrt(mag_field["Mag_R"]**2 + mag_field["Mag_T"]**2 + mag_field["Mag_N"]**2)
+    mag_field = pd.concat([Mag_R,Mag_T,Mag_N,magnitude_mag_non_norm],axis=1) # add mag data to pandas dataframe
   
     mag_data.reset_index(inplace=True)
     pas_data = pas_data.reset_index()
 
-    # mag_data.sort_values(by="index")
+    # mag_data.sort_values(by="index") # should already be sorted, uncomment if not 
     # pas_data.sort_values(by="index")
+
+    ## Merging the pas_data dna mag_data, this reduces the resolution of the mag data
 
     df = pd.merge_asof(pas_data.sort_values("index"),mag_data.sort_values("index"),on=["index"],direction="nearest").dropna()#.drop_duplicates(subset="pas data",keep="first")
     df.set_index("index",inplace=True)
     mag_data.set_index("index",inplace=True)
     pas_data.set_index("index",inplace=True)
  
-    df = pd.concat([df,V_data,T_data],axis=1)
+    df = pd.concat([df,V_data,T_data],axis=1) ## merge the new df to the velocity and temp data from the PAS instrument
 
-    df = df.drop(["B_N","B_T","B_R"],axis=1)
+    df = df.drop(["B_N","B_T","B_R"],axis=1)  # no longer need individual components of the magnetic field
 
+    ## Normalise the pas and mag data 
 
     df["pas_normalised"] = (df["pas data"] - df["pas data"].rolling(window=int(num_data)).mean())/df["pas data"].rolling(window=int(num_data)).mean()
     mag_field["mag_normalised"] = (mag_field["magnitude_mag_non_norm"] - mag_field["magnitude_mag_non_norm"].rolling(window=int(num_data)).mean())/mag_field["magnitude_mag_non_norm"].rolling(window=int(num_data)).mean()
 
     df.dropna(inplace=True)
 
-
-    #df["magnitude_V"] = np.sqrt(df["V_R"]**2 + df["V_T"]**2 + df["V_N"]**2)
-
-    ##Finding V_0
+    ## Finding V_0
     ## normalise first
     V_R_norm = (df["V_R"] - df["V_R"].rolling(window=int(num_data)).mean()) / df["V_R"].rolling(window=int(num_data)).mean()
     V_T_norm = (df["V_T"] - df["V_T"].rolling(window=int(num_data)).mean()) / df["V_T"].rolling(window=int(num_data)).mean()
@@ -200,12 +208,16 @@ for i in wanted_time:
   
     df.dropna(inplace=True)
     mag_field.dropna(inplace=True)
-
+ 
+    ## Merge the new mag data and df 
     df = pd.merge_asof(df.sort_values("index"),mag_field.sort_values("index"),on=["index"],direction="nearest")#.dropna()#.drop_duplicates(subset=df,keep="first")
  
     df.set_index("index",inplace=True)
     
     print("After merge_asof"+number)
+    
+    ## Find the B_0 values in the individual magnetic field components
+
     B_0_R = df["Mag_R"].rolling(window=num_data).mean()[::num_data]
     B_0_T = df["Mag_T"].rolling(window=num_data).mean()[::num_data]
     B_0_N = df["Mag_N"].rolling(window=num_data).mean()[::num_data]
@@ -216,7 +228,7 @@ for i in wanted_time:
 
     df = pd.concat([df,B_0_R,B_0_T,B_0_N],axis=1)
 
-    #print(df)
+
     df["B_0_R"].fillna(method="bfill",inplace=True)
     df["B_0_T"].fillna(method="bfill",inplace=True)
     df["B_0_N"].fillna(method="bfill",inplace=True)
@@ -226,6 +238,9 @@ for i in wanted_time:
     df["vel_parr"] = df["vel_parr"]/(df["mag_normalised"].rolling(window=num_data).mean())
     df.dropna(inplace=True)
     
+
+    ## Finding the correlation and average between the mag and pas data over the time window
+
     print("finding correlation "+number)
     average_mag = df["mag_normalised"].rolling(window=int(num_data)).mean()[::int(num_data)]
     average_pas = df["pas_normalised"].rolling(window=int(num_data)).mean()[::int(num_data)]
@@ -242,8 +257,13 @@ for i in wanted_time:
 
     all_data = all_data.dropna()
 
+
+    ## save all data to csv for further analysis 
+
     all_data.to_csv("Cor_av_CvN_2021"+time_string)
     
     df = df[["pas data","mag_normalised","V_R","V_T","V_N","Temp"]]
     df.to_csv("data_frame2021_"+time_string)
+
+
 
